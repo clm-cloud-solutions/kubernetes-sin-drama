@@ -1,0 +1,333 @@
+{
+  "uid": "que-cambio-1h",
+  "title": "Qué cambió en la última hora",
+  "description": "Edición 4 de «Kubernetes sin drama»: syncs de Argo CD como anotaciones, eventos de Kubernetes desde Loki y ReplicaSets creados en la última hora.",
+  "tags": [
+    "kubernetes-sin-drama",
+    "argocd",
+    "cambios"
+  ],
+  "timezone": "browser",
+  "editable": true,
+  "graphTooltip": 1,
+  "refresh": "30s",
+  "schemaVersion": 41,
+  "version": 2,
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  },
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      },
+      {
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
+        "enable": true,
+        "hide": false,
+        "iconColor": "orange",
+        "name": "Syncs de Argo CD",
+        "filter": {
+          "exclude": false,
+          "ids": [
+            1
+          ]
+        },
+        "target": {
+          "type": "tags",
+          "tags": [
+            "argocd"
+          ],
+          "matchAny": true,
+          "limit": 100
+        }
+      }
+    ]
+  },
+  "templating": {
+    "list": [
+      {
+        "name": "namespace",
+        "label": "Namespace",
+        "type": "query",
+        "datasource": {
+          "type": "loki",
+          "uid": "loki"
+        },
+        "query": {
+          "type": 1,
+          "label": "namespace",
+          "stream": "{job=\"loki.source.kubernetes_events\"}",
+          "refId": "LokiVariableQueryEditor-VariableQuery"
+        },
+        "definition": "label_values({job=\"loki.source.kubernetes_events\"}, namespace)",
+        "refresh": 2,
+        "sort": 1,
+        "multi": true,
+        "includeAll": true,
+        "allValue": ".*",
+        "current": {
+          "selected": true,
+          "text": [
+            "sm-store"
+          ],
+          "value": [
+            "sm-store"
+          ]
+        }
+      },
+      {
+        "name": "tipo",
+        "label": "Tipo de evento",
+        "type": "custom",
+        "query": "Warning,Normal",
+        "multi": true,
+        "includeAll": true,
+        "allValue": ".+",
+        "current": {
+          "selected": true,
+          "text": [
+            "All"
+          ],
+          "value": [
+            "$__all"
+          ]
+        },
+        "options": [
+          {
+            "selected": true,
+            "text": "All",
+            "value": "$__all"
+          },
+          {
+            "selected": false,
+            "text": "Warning",
+            "value": "Warning"
+          },
+          {
+            "selected": false,
+            "text": "Normal",
+            "value": "Normal"
+          }
+        ]
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "timeseries",
+      "title": "store-backend · CPU por pod",
+      "description": "La app de demo no expone métricas HTTP: se usa la CPU de sus pods. Las líneas naranjas son syncs de Argo CD (anotaciones con tag argocd).",
+      "gridPos": {
+        "h": 9,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "sum by (pod) (rate(container_cpu_usage_seconds_total{namespace=\"sm-store\", pod=~\"store-backend-.*\", container=\"app\"}[2m]))",
+          "legendFormat": "{{pod}}",
+          "range": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "cores",
+          "min": 0,
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 10,
+            "showPoints": "never",
+            "spanNulls": false
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 2,
+      "type": "logs",
+      "title": "Eventos de Kubernetes (Loki) · $namespace · $tipo",
+      "description": "Eventos recogidos por Alloy (loki.source.kubernetes_events). type no es un label del stream: va dentro de la línea logfmt.",
+      "gridPos": {
+        "h": 12,
+        "w": 13,
+        "x": 0,
+        "y": 9
+      },
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "expr": "{job=\"loki.source.kubernetes_events\", namespace=~\"$namespace\"} | logfmt | type=~\"$tipo\" | drop detected_level | label_format level=`{{ if eq .type \"Warning\" }}warning{{ else }}info{{ end }}` | line_format `{{ .type }}  {{ .kind }}/{{ .name }}  {{ .reason }}: {{ .msg }}`",
+          "queryType": "range"
+        }
+      ],
+      "options": {
+        "showTime": true,
+        "showLabels": false,
+        "showCommonLabels": false,
+        "wrapLogMessage": true,
+        "prettifyLogMessage": false,
+        "enableLogDetails": true,
+        "dedupStrategy": "none",
+        "sortOrder": "Descending"
+      }
+    },
+    {
+      "id": 3,
+      "type": "table",
+      "title": "ReplicaSets creados en la última hora",
+      "description": "(time() - kube_replicaset_created) < 3600, con el Deployment dueño y la antigüedad en minutos.",
+      "gridPos": {
+        "h": 12,
+        "w": 11,
+        "x": 13,
+        "y": 9
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "max by (namespace, owner_kind, owner_name, replicaset) (\n  round((time() - kube_replicaset_created{namespace=~\"$namespace\"}) / 60, 0.1)\n  * on (namespace, replicaset) group_left (owner_kind, owner_name)\n  kube_replicaset_owner\n) < 60",
+          "format": "table",
+          "instant": true,
+          "range": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto"
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Value"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Antigüedad (min)"
+              },
+              {
+                "id": "decimals",
+                "value": 1
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-text"
+                }
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "orange",
+                      "value": null
+                    },
+                    {
+                      "color": "text",
+                      "value": 15
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true,
+              "owner_kind": true
+            },
+            "indexByName": {
+              "namespace": 0,
+              "owner_name": 1,
+              "replicaset": 2,
+              "Value": 3
+            },
+            "renameByName": {
+              "namespace": "Namespace",
+              "owner_name": "Owner",
+              "replicaset": "ReplicaSet"
+            }
+          }
+        },
+        {
+          "id": "sortBy",
+          "options": {
+            "sort": [
+              {
+                "field": "Value",
+                "desc": false
+              }
+            ]
+          }
+        }
+      ],
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm"
+      }
+    }
+  ]
+}

@@ -1,0 +1,21 @@
+# Parche para argocd-notifications-cm (edición 4 de «Kubernetes sin drama»).
+# Se FUSIONA con lo que ya haya en el ConfigMap, no lo reemplaza:
+#
+#   kubectl -n argocd patch configmap argocd-notifications-cm \
+#     --type merge --patch-file argocd-notifications-cm.patch.yaml
+#
+# $grafana-api-key NO es el token: es una referencia a la clave grafana-api-key
+# del Secret argocd-notifications-secret, que se rellena aparte.
+#
+# Aunque el campo se llame apiKey, lo que va ahí es el token de una cuenta de
+# servicio de Grafana: las API keys clásicas ya no existen desde Grafana 11.6.
+data:
+  # Sin esto, los templates del catálogo escriben «<no value>/applications/...»
+  # en el texto de la anotación. Es la URL del port-forward habitual
+  # (kubectl -n argocd port-forward svc/argocd-server 8080:443); cámbiala por
+  # la tuya si Argo CD tiene Ingress.
+  context: |
+    argocdUrl: https://localhost:8080
+  service.grafana: |
+    apiUrl: http://kube-prom-grafana.monitoring.svc/api
+    apiKey: $grafana-api-key

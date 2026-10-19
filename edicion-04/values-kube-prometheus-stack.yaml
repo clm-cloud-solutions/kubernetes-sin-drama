@@ -1,0 +1,86 @@
+# kube-prometheus-stack 92.8.0 · edición 4 de «Kubernetes sin drama»
+# Release: kube-prom · namespace: monitoring
+#
+# La contraseña de admin de Grafana NO está aquí: sale del Secret
+# monitoring/grafana-admin (claves admin-user / admin-password), creado antes
+# del install con `kubectl create secret generic`.
+
+alertmanager:
+  enabled: false
+
+prometheus:
+  prometheusSpec:
+    retention: 2d
+    resources:
+      requests:
+        cpu: 100m
+        memory: 512Mi
+      limits:
+        memory: 3Gi
+
+prometheusOperator:
+  resources:
+    requests:
+      cpu: 20m
+      memory: 64Mi
+    limits:
+      memory: 256Mi
+
+kube-state-metrics:
+  resources:
+    requests:
+      cpu: 10m
+      memory: 64Mi
+    limits:
+      memory: 256Mi
+
+prometheus-node-exporter:
+  # Heredado del release original: cambiarlo cambia el selector del DaemonSet
+  # (campo inmutable) y el upgrade falla.
+  nameOverride: node-exporter
+  resources:
+    requests:
+      cpu: 10m
+      memory: 32Mi
+    limits:
+      memory: 128Mi
+
+grafana:
+  enabled: true
+  admin:
+    existingSecret: grafana-admin
+    userKey: admin-user
+    passwordKey: admin-password
+  # Sin persistencia, la cuenta de servicio de Argo CD, su token y el dashboard
+  # viven en un SQLite en emptyDir y se pierden al reiniciar el pod.
+  persistence:
+    enabled: true
+    size: 1Gi
+  # Memoria: el chart fija GOMEMLIMIT al 90 % del límite. Con 512Mi
+  # (GOMEMLIMIT=460MiB), navegar por Grafana 13.2.4 sube el heap a ~430 MiB y el
+  # GC de Go entra en bucle: CPU al máximo y probes fallando (ver README). Con
+  # 1Gi no pasa. El límite de CPU se queda para que un pico no se coma el host.
+  resources:
+    requests:
+      cpu: 50m
+      memory: 256Mi
+    limits:
+      cpu: "1"
+      memory: 1Gi
+  # Aunque alertmanager.enabled=false, el chart sigue provisionando un
+  # datasource «Alertmanager» que apunta a un servicio inexistente.
+  sidecar:
+    datasources:
+      alertmanager:
+        enabled: false
+  deleteDatasources:
+    - name: Alertmanager
+      orgId: 1
+  additionalDataSources:
+    - name: Loki
+      uid: loki
+      type: loki
+      access: proxy
+      url: http://loki-gateway.loki.svc.cluster.local
+      jsonData:
+        maxLines: 1000

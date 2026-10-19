@@ -1,0 +1,32 @@
+# grafana/alloy 1.13.1 (Alloy v1.20.1) · edición 4 de «Kubernetes sin drama»
+# Release: alloy · namespace: monitoring
+# Deployment de UNA réplica (no DaemonSet): cada réplica vigila todos los
+# eventos del API server, así que con más de una se duplicarían.
+
+controller:
+  type: deployment
+  replicas: 1
+
+alloy:
+  configMap:
+    create: true
+    content: |
+      loki.source.kubernetes_events "events" {
+        log_format = "logfmt"
+        forward_to = [loki.write.local.receiver]
+      }
+
+      loki.write "local" {
+        endpoint {
+          url = "http://loki-gateway.loki.svc.cluster.local/loki/api/v1/push"
+        }
+      }
+  resources:
+    requests:
+      cpu: 20m
+      memory: 64Mi
+    limits:
+      memory: 256Mi
+
+# El ClusterRole por defecto del chart ya incluye get/list/watch sobre events
+# (regla para loki.source.kubernetes_events), no hace falta tocar rbac.rules.
