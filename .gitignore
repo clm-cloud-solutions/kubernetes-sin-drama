@@ -1,0 +1,5 @@
+.DS_Store
+
+# Lo que generan los laboratorios al ejecutarse
+edicion-05/marcas.log
+edicion-05/lectura-*.txt
