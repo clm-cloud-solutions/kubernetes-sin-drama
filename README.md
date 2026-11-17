@@ -8,6 +8,7 @@ Cada carpeta corresponde a una edición: los values de Helm, los manifiestos, lo
 |---|---|---|
 | 4 · 20 oct 2026 | Qué cambió en tu clúster: syncs de Argo CD, eventos de Kubernetes en Loki y ReplicaSets recientes en un mismo dashboard de Grafana | [`edicion-04`](edicion-04/) |
 | 5 · 3 nov 2026 | Cuándo empezó de verdad un incidente: por qué un evento repetido mezcla episodios y qué lectura da la hora real | [`edicion-05`](edicion-05/) |
+| 6 · 17 nov 2026 | Un agente de IA en tu clúster, sin darle las llaves: identidad de solo lectura, salida de red limitada, techo de recursos y auditoría de lo que intentó | [`edicion-06`](edicion-06/) |
 
 La edición 3 (decisiones que no se dejan en manos de un modelo) tiene su propio repositorio: [agentic-patterns-k8s](https://github.com/clm-cloud-solutions/agentic-patterns-k8s).
 

@@ -1,0 +1,4 @@
+fields @timestamp, verb, objectRef.resource, objectRef.namespace, responseStatus.code
+| filter user.username = "system:serviceaccount:agentes:agente-lector"
+| filter responseStatus.code >= 400
+| sort @timestamp desc

@@ -1,0 +1,52 @@
+# Edición 6 · Bloque 3: cuánto puede consumir y durante cuánto tiempo.
+# La cuota pone techo al namespace. Como fija limits.cpu y limits.memory,
+# todo pod que no los declare queda rechazado en este namespace.
+# El Job se corta a los 5 minutos, haya terminado o no, y no se reintenta.
+# tu-registro/tu-agente:1.0 es un marcador: pon la imagen de tu agente.
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: tope-agentes
+  namespace: agentes
+spec:
+  hard:
+    count/pods: "5"
+    limits.cpu: "2"
+    limits.memory: 2Gi
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: investigacion-001
+  namespace: agentes
+spec:
+  activeDeadlineSeconds: 300
+  backoffLimit: 0
+  ttlSecondsAfterFinished: 3600
+  template:
+    metadata:
+      labels:
+        app: agente
+    spec:
+      serviceAccountName: agente-lector
+      restartPolicy: Never
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: agente
+          image: tu-registro/tu-agente:1.0
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]

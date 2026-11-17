@@ -1,0 +1,49 @@
+# Edición 6 · Bloque 2: a dónde puede salir.
+# Los pods con app=agente solo salen al DNS del clúster, al modelo y a la API.
+# 172.18.0.2 es un ejemplo: cámbiala por la IP de la API de tu clúster.
+#   kubectl get endpointslice -l kubernetes.io/service-name=kubernetes
+# aplicar.sh lo hace por ti.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: agente-egress
+  namespace: agentes
+spec:
+  podSelector:
+    matchLabels:
+      app: agente
+  policyTypes:
+    - Ingress
+    - Egress
+  egress:
+    # DNS del clúster
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+          podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+    # El modelo, corriendo dentro del clúster
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: modelos
+          podSelector:
+            matchLabels:
+              app: ollama
+      ports:
+        - protocol: TCP
+          port: 11434
+    # La API de Kubernetes: cambia la IP por la de tu clúster
+    - to:
+        - ipBlock:
+            cidr: 172.18.0.2/32
+      ports:
+        - protocol: TCP
+          port: 6443

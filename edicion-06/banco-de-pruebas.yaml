@@ -1,0 +1,127 @@
+# Edición 6 · Banco de pruebas. No forma parte del arnés: sirve para comprobarlo.
+# - modelos/ollama: un servidor HTTP mínimo en el 11434 con la etiqueta app=ollama.
+#   Ocupa el lugar del modelo sin descargar Ollama.
+# - otro/senuelo: misma etiqueta y mismo puerto, en otro namespace. La política
+#   debe bloquearlo.
+# - agentes/agente-prueba: un pod con app=agente y el ServiceAccount del agente.
+# - agentes/control-sin-politica: igual, pero sin app=agente. La política no lo
+#   selecciona: sirve para ver que el bloqueo viene de ella.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: modelos
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: ollama
+  namespace: modelos
+  labels:
+    app: ollama
+spec:
+  containers:
+    - name: http
+      image: busybox:1.37
+      command: ["sh", "-c", "mkdir -p /www && echo modelo > /www/index.html && httpd -f -p 11434 -h /www"]
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ollama
+  namespace: modelos
+spec:
+  selector:
+    app: ollama
+  ports:
+    - port: 11434
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: otro
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: senuelo
+  namespace: otro
+  labels:
+    app: ollama
+spec:
+  containers:
+    - name: http
+      image: busybox:1.37
+      command: ["sh", "-c", "mkdir -p /www && echo senuelo > /www/index.html && httpd -f -p 11434 -h /www"]
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: senuelo
+  namespace: otro
+spec:
+  selector:
+    app: ollama
+  ports:
+    - port: 11434
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: agente-prueba
+  namespace: agentes
+  labels:
+    app: agente
+spec:
+  serviceAccountName: agente-lector
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 10001
+    seccompProfile:
+      type: RuntimeDefault
+  containers:
+    - name: curl
+      image: curlimages/curl:8.11.1
+      command: ["sleep", "3600"]
+      resources:
+        requests:
+          cpu: 50m
+          memory: 32Mi
+        limits:
+          cpu: 100m
+          memory: 64Mi
+      securityContext:
+        allowPrivilegeEscalation: false
+        readOnlyRootFilesystem: true
+        capabilities:
+          drop: ["ALL"]
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: control-sin-politica
+  namespace: agentes
+  labels:
+    app: control
+spec:
+  serviceAccountName: agente-lector
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 10001
+    seccompProfile:
+      type: RuntimeDefault
+  containers:
+    - name: curl
+      image: curlimages/curl:8.11.1
+      command: ["sleep", "3600"]
+      resources:
+        requests:
+          cpu: 50m
+          memory: 32Mi
+        limits:
+          cpu: 100m
+          memory: 64Mi
+      securityContext:
+        allowPrivilegeEscalation: false
+        readOnlyRootFilesystem: true
+        capabilities:
+          drop: ["ALL"]

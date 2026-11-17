@@ -1,0 +1,29 @@
+# Edición 6 · Bloque 1: una identidad que solo puede mirar.
+# El ClusterRole view lee casi todo lo que vive en un namespace y, por diseño,
+# no lee Secrets. Tampoco lee recursos de todo el clúster (nodos, PVs, roles).
+# El namespace aplica Pod Security restricted a todo lo que corra en él.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: agentes
+  labels:
+    pod-security.kubernetes.io/enforce: restricted
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: agente-lector
+  namespace: agentes
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: agente-lector-view
+subjects:
+  - kind: ServiceAccount
+    name: agente-lector
+    namespace: agentes
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: view

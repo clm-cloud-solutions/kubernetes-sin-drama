@@ -1,0 +1,10 @@
+# Edición 6 · Un kind con un nodo worker.
+# Con un solo nodo, kindnet deja pasar el tráfico de un pod hacia su propio
+# nodo, y la API de Kubernetes corre en ese nodo: la regla de la API del
+# bloque 2 no se puede comprobar. Con un worker, el agente corre en el worker
+# y su tráfico hacia la API pasa por la NetworkPolicy, como en un clúster real.
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+nodes:
+  - role: control-plane
+  - role: worker
